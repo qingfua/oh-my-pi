@@ -27,6 +27,7 @@ import { googleGeminiCliProvider } from "./google-gemini-cli";
 import { googleVertexProvider } from "./google-vertex";
 import { groqProvider } from "./groq";
 import { huggingfaceProvider } from "./huggingface";
+import { hyperProvider } from "./hyper";
 import { kagiProvider } from "./kagi";
 import { kiloProvider } from "./kilo";
 import { kimiCodeProvider } from "./kimi-code";
@@ -126,6 +127,7 @@ const ALL = [
 	nvidiaProvider,
 	novitaProvider,
 	huggingfaceProvider,
+	hyperProvider,
 	perplexityProvider,
 	qianfanProvider,
 	veniceProvider,

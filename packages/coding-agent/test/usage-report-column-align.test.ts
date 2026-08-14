@@ -111,3 +111,55 @@ describe("renderUsageReports multi-account column alignment (#6067)", () => {
 		expect(Bun.stringWidth(amountRow.slice(2, summaryStart))).toBe(9);
 	});
 });
+
+describe("renderUsageReports remaining-only credits balance", () => {
+	it("renders '<n> credits left' instead of the accts fallback", () => {
+		const report: UsageReport = {
+			provider: "hyper",
+			fetchedAt: Date.now(),
+			limits: [
+				{
+					id: "hyper:credits",
+					label: "Hypercredits",
+					scope: { provider: "hyper", shared: true },
+					amount: { remaining: 92.5, unit: "credits" },
+					status: "ok",
+				},
+			],
+		};
+		const text = stripVTControlCharacters(renderUsageReports([report], theme, Date.now(), 160));
+		expect(text).toContain("Hypercredits");
+		expect(text).toContain("92.5 credits left");
+		expect(text).not.toContain("accts");
+		expect(text).not.toContain("%");
+	});
+
+	it("renders the per-limit dotted bar row with the credit balance and no fabricated percent", () => {
+		const report: UsageReport = {
+			provider: "hyper",
+			fetchedAt: Date.now(),
+			limits: [
+				{
+					id: "hyper:credits",
+					label: "Hypercredits",
+					scope: { provider: "hyper", shared: true },
+					amount: { remaining: 92.5, unit: "credits" },
+					status: "ok",
+				},
+			],
+		};
+		const text = stripVTControlCharacters(renderUsageReports([report], theme, Date.now(), 160));
+		const lines = text.split("\n");
+		const headerIdx = lines.findIndex(line => line.includes("Hypercredits"));
+		expect(headerIdx).toBeGreaterThanOrEqual(0);
+		// Section header, then the per-account label row, then the bars + amount row.
+		expect(lines[headerIdx]).toContain("Hypercredits");
+		expect(lines[headerIdx + 1]).toContain("account 1");
+		const barRow = lines[headerIdx + 2]!;
+		// No used/limit → renderUsageBar falls back to the dim dotted bar rather
+		// than a utilization percent; formatAggregateAmount renders the balance.
+		expect(barRow).toContain("·");
+		expect(barRow).toContain("92.5 credits left");
+		expect(barRow).not.toContain("%");
+	});
+});

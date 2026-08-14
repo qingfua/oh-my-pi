@@ -863,6 +863,104 @@ export function umansModelManagerOptions(config?: UmansModelManagerConfig): Mode
 	};
 }
 // ---------------------------------------------------------------------------
+// Charm Hyper
+// ---------------------------------------------------------------------------
+
+const HYPER_BASE_URL = "https://hyper.charm.land/v1";
+
+const HYPER_EFFORT_BY_LEVEL: Record<string, Effort> = {
+	low: Effort.Low,
+	medium: Effort.Medium,
+	high: Effort.High,
+	xhigh: Effort.XHigh,
+	max: Effort.Max,
+};
+
+function mapHyperThinking(raw: unknown): ThinkingConfig | undefined {
+	if (!isRecord(raw)) return undefined;
+	if (!Array.isArray(raw.effort_levels)) return undefined;
+	const efforts: Effort[] = [];
+	for (const level of raw.effort_levels) {
+		if (!isRecord(level) || typeof level.value !== "string") continue;
+		const effort = HYPER_EFFORT_BY_LEVEL[level.value];
+		if (effort !== undefined && !efforts.includes(effort)) efforts.push(effort);
+	}
+	if (efforts.length === 0) return undefined;
+	const thinking: ThinkingConfig = { mode: "effort", efforts };
+	if (typeof raw.default_effort_level === "string") {
+		const defaultLevel = HYPER_EFFORT_BY_LEVEL[raw.default_effort_level];
+		if (defaultLevel !== undefined && efforts.includes(defaultLevel)) thinking.defaultLevel = defaultLevel;
+	}
+	return thinking;
+}
+
+/**
+ * Maps Hyper's `/v1/models` entries onto openai-completions models, merging the
+ * bundled models.dev reference for absent fields. Hyper's effort_levels values
+ * (`none|low|medium|high|xhigh|max`) map to omp's effort scale; `none` and
+ * out-of-set defaults are dropped so the ThinkingConfig stays total.
+ */
+export function mapHyperModel(
+	entry: OpenAICompatibleModelRecord,
+	defaults: ModelSpec<"openai-completions">,
+	reference: ModelSpec<"openai-completions"> | undefined,
+): ModelSpec<"openai-completions"> {
+	const capabilities = isRecord(entry.capabilities) ? entry.capabilities : {};
+	const vision = capabilities.vision === true;
+	const thinking = mapHyperThinking(entry.reasoning);
+	return {
+		...reference,
+		id: defaults.id,
+		name: toModelName(entry.display_name, reference?.name ?? defaults.name),
+		api: "openai-completions",
+		provider: "hyper",
+		baseUrl: defaults.baseUrl,
+		reasoning: thinking !== undefined,
+		// Entry facts win: when the entry carries no usable reasoning metadata,
+		// the result is a non-reasoning model regardless of what the reference
+		// (bundled/global same-id index) supplies — an absent `reasoning` in the
+		// live payload must not resurrect reasoning via the reference spread.
+		...(thinking ? { thinking } : { thinking: undefined }),
+		input: vision ? ["text", "image"] : (reference?.input ?? ["text"]),
+		cost: {
+			input: toPositiveNumber(
+				entry.pricing ? (isRecord(entry.pricing) ? entry.pricing.input : undefined) : undefined,
+				reference?.cost?.input ?? 0,
+			),
+			output: toPositiveNumber(
+				entry.pricing ? (isRecord(entry.pricing) ? entry.pricing.output : undefined) : undefined,
+				reference?.cost?.output ?? 0,
+			),
+			cacheRead: toPositiveNumber(
+				entry.pricing ? (isRecord(entry.pricing) ? entry.pricing.cache_hit : undefined) : undefined,
+				reference?.cost?.cacheRead ?? 0,
+			),
+			cacheWrite: toPositiveNumber(
+				entry.pricing ? (isRecord(entry.pricing) ? entry.pricing.cache_create : undefined) : undefined,
+				reference?.cost?.cacheWrite ?? 0,
+			),
+		},
+		contextWindow: toPositiveNumber(entry.context_window, reference?.contextWindow ?? null),
+		maxTokens: toPositiveNumber(entry.max_output_tokens, reference?.maxTokens ?? null),
+	};
+}
+
+export interface HyperModelManagerConfig {
+	apiKey?: string;
+	baseUrl?: string;
+	fetch?: FetchImpl;
+}
+
+export function hyperModelManagerOptions(config?: HyperModelManagerConfig): ModelManagerOptions<"openai-completions"> {
+	return createOpenAICompatibleModelManagerOptions({
+		api: "openai-completions",
+		providerId: "hyper",
+		defaultBaseUrl: HYPER_BASE_URL,
+		config,
+		mapModel: (entry, defaults, reference) => mapHyperModel(entry, defaults, reference),
+	});
+}
+// ---------------------------------------------------------------------------
 // 1. OpenAI
 // ---------------------------------------------------------------------------
 
@@ -5739,6 +5837,9 @@ const MODELS_DEV_PROVIDER_DESCRIPTORS_CORE: readonly ModelsDevProviderDescriptor
 			requiresAssistantContentForToolCalls: true,
 		},
 	}),
+
+	// --- Charm Hyper ---
+	simpleModelsDevDescriptor("hyper", "hyper", "openai-completions", "https://hyper.charm.land/v1"),
 ];
 
 const MODELS_DEV_PROVIDER_DESCRIPTORS_CODING_PLANS: readonly ModelsDevProviderDescriptor[] = [

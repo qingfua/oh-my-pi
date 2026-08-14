@@ -1686,6 +1686,16 @@ function formatAggregateAmount(limits: UsageLimit[]): string {
 
 	if (limits.length > 0 && limits.every(isUsedOnlyAbsoluteAmount)) return "";
 
+	// Balance-style limits (e.g. Hypercredits): only `remaining` is populated.
+	// Render the raw balance rather than the generic accts fallback.
+	const remainingOnly = limits
+		.map(limit => limit.amount)
+		.filter(amount => amount.remaining !== undefined && amount.used === undefined && amount.limit === undefined);
+  if (remainingOnly.length === limits.length && limits.length > 0) {
+    const totalRemaining = remainingOnly.reduce((sum, limit) => sum + (limit.remaining ?? 0), 0);
+		return `${formatNumber(totalRemaining, 2)} ${remainingOnly[0].unit} left`; // unit here should be consistent
+	}
+
 	// Count unique accounts from limit scopes — not limits.length.
 	const uniqueAccountIds = new Set(
 		limits.map(limit => limit.scope.accountId).filter((id): id is string => typeof id === "string" && id.length > 0),

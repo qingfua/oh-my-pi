@@ -216,6 +216,7 @@ const UNIT_SUFFIX: Record<UsageUnit, string> = {
 	percent: "",
 	usd: "",
 	unknown: "",
+	credits: " credits",
 };
 
 function describeAmount(limit: UsageLimit): string {

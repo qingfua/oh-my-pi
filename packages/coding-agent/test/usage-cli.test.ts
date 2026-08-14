@@ -255,6 +255,20 @@ describe("formatUsageBreakdown", () => {
 		expect(text).not.toContain("%");
 		expect(text).not.toContain("resets");
 	});
+	it("renders a remaining-only credits balance as '<n> credits left'", () => {
+		const creditsReport = makeReport("hyper", "hyper@example.test", [
+			{
+				id: "hyper:credits",
+				label: "Hypercredits",
+				scope: { provider: "hyper", shared: true },
+				amount: { remaining: 92.5, unit: "credits" },
+				status: "ok",
+			},
+		]);
+		const text = stripVTControlCharacters(formatUsageBreakdown([creditsReport], [], Date.now()));
+		expect(text).toContain("92.5 credits left");
+		expect(text).not.toContain("%");
+	});
 	it("renders every account: reported ones with limits, credential-only ones as no-data rows", () => {
 		const text = stripVTControlCharacters(formatUsageBreakdown(reports, accounts, Date.now()));
 		expect(text).toContain("dummy.primary@example.test");

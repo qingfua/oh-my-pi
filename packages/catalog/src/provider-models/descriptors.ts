@@ -26,6 +26,7 @@ import {
 	gmiCloudModelManagerOptions,
 	groqModelManagerOptions,
 	huggingfaceModelManagerOptions,
+	hyperModelManagerOptions,
 	kiloModelManagerOptions,
 	kimiCodeModelManagerOptions,
 	litellmModelManagerOptions,
@@ -238,6 +239,14 @@ export const CATALOG_PROVIDERS = [
 		envVars: ["HUGGINGFACE_HUB_TOKEN", "HF_TOKEN"],
 		createModelManagerOptions: (config: ModelManagerConfig) => huggingfaceModelManagerOptions(config),
 		catalogDiscovery: { label: "Hugging Face" },
+	},
+	{
+		id: "hyper",
+		defaultModel: "deepseek-v4-pro",
+		envVars: ["HYPER_API_KEY"],
+		createModelManagerOptions: (config: ModelManagerConfig) => hyperModelManagerOptions(config),
+		allowUnauthenticated: true,
+		catalogDiscovery: { label: "Charm Hyper" },
 	},
 	{
 		id: "kilo",

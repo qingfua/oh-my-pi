@@ -264,4 +264,26 @@ describe("auth-broker public wire schemas", () => {
 			reports: [{ ...USAGE_REPORT, limits: [{ ...USAGE_REPORT.limits[0], status: "critical" }] }],
 		});
 	});
+
+	test("accepts a credits-unit remaining balance through the usage envelope", () => {
+		const response = {
+			generatedAt: 2_000,
+			reports: [
+				{
+					provider: "hyper",
+					fetchedAt: 2_000,
+					limits: [
+						{
+							id: "hyper:credits",
+							label: "Hypercredits",
+							scope: { provider: "hyper", shared: true },
+							amount: { remaining: 92.5, unit: "credits" },
+							status: "ok",
+						},
+					],
+				},
+			],
+		};
+		expect(accept(wireSchemas.usageResponseSchema, response)).toEqual(response);
+	});
 });
