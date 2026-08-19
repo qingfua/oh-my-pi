@@ -242,7 +242,7 @@ export const CATALOG_PROVIDERS = [
 	},
 	{
 		id: "hyper",
-		defaultModel: "deepseek-v4-pro",
+		defaultModel: "deepseek-v4-pro-0813",
 		envVars: ["HYPER_API_KEY"],
 		createModelManagerOptions: (config: ModelManagerConfig) => hyperModelManagerOptions(config),
 		allowUnauthenticated: true,
